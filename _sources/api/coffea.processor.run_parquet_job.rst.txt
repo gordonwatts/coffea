@@ -1,0 +1,6 @@
+run_parquet_job
+===============
+
+.. currentmodule:: coffea.processor
+
+.. autofunction:: run_parquet_job

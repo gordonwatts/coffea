@@ -1,0 +1,7 @@
+Vertex
+======
+
+.. currentmodule:: coffea.nanoevents.methods.nanoaod
+
+.. autoclass:: Vertex
+   :show-inheritance:
