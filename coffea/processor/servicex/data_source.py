@@ -39,7 +39,7 @@ class DataSource:
         self.schema = None
         self.datasets = datasets
 
-    async def stream_result_file_urls(self) -> AsyncGenerator[StreamInfoUrl, None]:
+    async def stream_result_file_urls(self, datatype) -> AsyncGenerator[StreamInfoUrl, None]:
         """Launch all datasources at once
 
         TODO: This is currently sync (that outter for loop does one datasource and then the next).
@@ -48,9 +48,21 @@ class DataSource:
         Yields:
             [type]: [description]
         """
+        # Get the query qastle 
+        self.query.return_qastle = True
+        query_qastle = await self.query.value_async()
+
+        # Get the files back from each dataset.
+        # TODO: Parallelize this outter loop using streams (or similar).
         for dataset in self.datasets:
-            async for file in dataset.get_data_rootfiles_url_stream(self.query.value()):
-                yield file
+            if datatype == 'parquet':
+                async for file in dataset.get_data_parquet_url_stream(query_qastle):
+                    yield file
+            elif datatype == 'root':
+                async for file in dataset.get_data_url_url_stream(query_qastle):
+                    yield file
+        else:
+            raise Exception('Unknown datatype')
 
     async def stream_result_files(self) -> AsyncGenerator[StreamInfoUrl, None]:
         """Launch all datasources at once
@@ -61,6 +73,12 @@ class DataSource:
         Yields:
             [type]: [description]
         """
+        # Get the query qastle 
+        # self.query.return_qastle = True
+        query_qastle = await self.query.value_async()
+
+        # Get the files back from each dataset.
+        # TODO: Parallelize this outter loop using streams (or similar).
         for dataset in self.datasets:
-            async for file in dataset.get_data_rootfiles_stream(self.query.value()):
+            async for file in dataset.get_data_parquet_stream(query_qastle):
                 yield file

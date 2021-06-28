@@ -60,17 +60,28 @@ class auto_schema(BaseSchema):
 
             # Build the new data model from this guy. Look at what is available to see if
             # we can build a 4-vector collection or just a "normal" collection.
-            is_4vector = (
+            is_4vector_mass = (
                 "pt" in mapping
                 and "eta" in mapping
                 and "phi" in mapping
                 and "mass" in mapping
+                and "charge" in mapping
             )
+            is_4vector_E = (
+                "pt" in mapping
+                and "eta" in mapping
+                and "phi" in mapping
+                and "energy" in mapping
+                and "charge" in mapping
+            )
+            record_name = "PtEtaPhiMCandidate" if is_4vector_mass \
+                else "PtEtaPhiECandidate" if is_4vector_E \
+                else "NanoCollection"
             record = _build_record_array(
                 c_name,
                 mapping,
                 contents,
-                "PtEtaPhiMCandidate" if is_4vector else "NanoCollection",
+                record_name,
             )
             record["parameters"].update({"collection_name": c_name})
             output[c_name] = record

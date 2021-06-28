@@ -14,7 +14,7 @@ from servicex import ServiceXDataset
 
 
 class FuncAdlDataset(EventDataset):
-    "func_adl data source that will return `qastle` string for the query, providing low level access."
+    "func_adl data source that will return `qastle` string for the query, providing low level access. TODO: Delete this class"
 
     def __init__(self):
         super().__init__()
@@ -27,10 +27,6 @@ class FuncAdlDataset(EventDataset):
         This code was stolen from the `ServiceX.py` file located in `func_adl_servicex`
         """
         source = a
-        if cast(ast.Name, a.func).id != "ResultTTree":
-            raise Exception("Must be a call to AsROOTTtree at end of query for now")
-
-        # Get the qastle we are going to use!
         return python_ast_to_text_ast(source)
 
 

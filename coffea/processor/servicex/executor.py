@@ -31,6 +31,7 @@ from urllib.parse import urlparse, unquote
 from urllib.request import url2pathname
 
 import aiostream
+from servicex.utils import DatasetType
 import uproot
 from servicex import StreamInfoUrl
 from ..accumulator import async_accumulate
@@ -46,8 +47,11 @@ class Executor(ABC):
     ):
         raise NotImplementedError
 
+    def __init__(self, datatype='root'):
+        self.datatype = datatype
+
     def get_result_file_stream(self, datasource):
-        return datasource.stream_result_file_urls()
+        return datasource.stream_result_file_urls(self.datatype)
 
     async def execute(self, analysis, datasource):
         """
@@ -64,7 +68,7 @@ class Executor(ABC):
 
         # Launch a task against this file
         func_results = self.launch_analysis_tasks_from_stream(
-            result_file_stream, analysis.process
+            self.datatype, result_file_stream, analysis.process
         )
 
         # Wait for all the data to show up
@@ -82,6 +86,7 @@ class Executor(ABC):
 
     async def launch_analysis_tasks_from_stream(
         self,
+        datatype,
         result_file_stream: AsyncGenerator[StreamInfoUrl, None],
         process_func: Callable,
     ) -> AsyncGenerator[Any, None]:
@@ -106,14 +111,16 @@ class Executor(ABC):
                 file_url = url2pathname(unquote(p.path))
 
             # Determine the tree name if we've not gotten it already
-            if tree_name is None:
-                with uproot.open(file_url) as sample:
-                    tree_name = sample.keys()[0]
+            if datatype == 'root':
+                if tree_name is None:
+                    with uproot.open(file_url) as sample:
+                        tree_name = sample.keys()[0]
 
             # Invoke the implementation's task launcher
             data_result = self.run_async_analysis(
                 file_url=file_url,
                 tree_name=tree_name,
+                datatype=datatype,
                 process_func=process_func,
             )
 
@@ -122,7 +129,7 @@ class Executor(ABC):
 
 
 def run_coffea_processor(
-    events_url: str, tree_name: str, proc, explicit_func_pickle=False
+    events_url: str, tree_name: str, proc, datatype, explicit_func_pickle=False
 ):
     """
     Process a single file from a tree via a coffea processor on the remote node
@@ -145,12 +152,21 @@ def run_coffea_processor(
     from coffea.nanoevents.schemas.schema import auto_schema
 
     # Use NanoEvents to build a 4-vector
-    events = NanoEventsFactory.from_root(
-        file=str(events_url),
-        treepath=f"/{tree_name}",
-        schemaclass=auto_schema,
-        metadata={"dataset": "mc15x", "filename": str(events_url)},
-    ).events()
+    if datatype == 'root':
+        events = NanoEventsFactory.from_root(
+            file=str(events_url),
+            treepath=f"/{tree_name}",
+            schemaclass=auto_schema,
+            metadata={"dataset": "mc15x", "filename": str(events_url)},
+        ).events()
+    elif datatype == 'parquet':
+        events = NanoEventsFactory.from_parquet(
+            file=str(events_url),
+            treepath="/",
+            schemaclass=auto_schema,
+            metadata={"dataset": "mc15x", "filename": str(events_url)},
+        ).events()
+
 
     if explicit_func_pickle:
         import dill as pickle

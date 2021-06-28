@@ -29,22 +29,25 @@ from .executor import Executor, run_coffea_processor
 
 
 class LocalExecutor(Executor):
-    def __init__(self):
+    def __init__(self, datatype='root'):
+        super().__init__(datatype)
         pass
 
     def get_result_file_stream(self, datasource):
         return datasource.stream_result_files()
 
-    def run_async_analysis(self, file_url, tree_name, process_func):
+    def run_async_analysis(self, file_url, tree_name, process_func, datatype):
         return self._async_analysis(
             events_url=file_url,
             tree_name=tree_name,
             process_func=process_func,
+            datatype = datatype
         )
 
-    async def _async_analysis(self, events_url, tree_name, process_func):
+    async def _async_analysis(self, events_url, tree_name, process_func, datatype):
         return run_coffea_processor(
             events_url=events_url,
             tree_name=tree_name,
             proc=process_func,
+            datatype=datatype
         )
