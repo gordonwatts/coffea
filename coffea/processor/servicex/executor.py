@@ -26,7 +26,7 @@
 # OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 from abc import ABC, abstractmethod
-from typing import Any, Callable, AsyncGenerator
+from typing import Any, Callable, AsyncGenerator, Dict, Optional
 from urllib.parse import urlparse, unquote
 from urllib.request import url2pathname
 
@@ -43,7 +43,9 @@ class Executor(ABC):
         self,
         file_url: str,
         tree_name: str,
+        datatype: str,
         process_func: Callable,
+        metadata: Dict[str, str]
     ):
         raise NotImplementedError
 
@@ -53,7 +55,7 @@ class Executor(ABC):
     def get_result_file_stream(self, datasource):
         return datasource.stream_result_file_urls(self.datatype)
 
-    async def execute(self, analysis, datasource):
+    async def execute(self, analysis, datasource, metadata: Dict[str, str] = {}):
         """
         Launch an analysis against the given dataset on the implementation's task framework
         :param analysis:
@@ -66,9 +68,12 @@ class Executor(ABC):
         # Stream transformed file references from ServiceX
         result_file_stream = self.get_result_file_stream(datasource)
 
+        # Combine all the metadata!
+        all_metadata = dict(metadata, **datasource.metadata)
+
         # Launch a task against this file
         func_results = self.launch_analysis_tasks_from_stream(
-            self.datatype, result_file_stream, analysis.process
+            self.datatype, result_file_stream, analysis.process, all_metadata
         )
 
         # Wait for all the data to show up
@@ -89,6 +94,7 @@ class Executor(ABC):
         datatype,
         result_file_stream: AsyncGenerator[StreamInfoUrl, None],
         process_func: Callable,
+        metadata: Dict[str, str]
     ) -> AsyncGenerator[Any, None]:
         """
         Invoke the implementation's task runner on each file from the serviceX stream.
@@ -122,6 +128,7 @@ class Executor(ABC):
                 tree_name=tree_name,
                 datatype=datatype,
                 process_func=process_func,
+                metadata = metadata
             )
 
             # Pass this down to the next item in the stream.
@@ -129,7 +136,8 @@ class Executor(ABC):
 
 
 def run_coffea_processor(
-    events_url: str, tree_name: str, proc, datatype, explicit_func_pickle=False
+    events_url: str, tree_name: str, proc, datatype, explicit_func_pickle=False,
+    metadata_list: Optional[Dict[str, str]] = {}
 ):
     """
     Process a single file from a tree via a coffea processor on the remote node
@@ -157,14 +165,14 @@ def run_coffea_processor(
             file=str(events_url),
             treepath=f"/{tree_name}",
             schemaclass=auto_schema,
-            metadata={"dataset": "mc15x", "filename": str(events_url)},
+            metadata= {"filename": str(events_url)},
         ).events()
     elif datatype == 'parquet':
         events = NanoEventsFactory.from_parquet(
             file=str(events_url),
             treepath="/",
             schemaclass=auto_schema,
-            metadata={"dataset": "mc15x", "filename": str(events_url)},
+            metadata=dict({"filename": str(events_url)}, **metadata_list),
         ).events()
 
 
