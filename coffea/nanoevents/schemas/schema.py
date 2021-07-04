@@ -9,7 +9,7 @@ def _build_record_array(
     """Build a record array using the mapping we've got from the contents.
 
     Args:
-        nam_mapping (Dict[str, str]): The mapping of user variable to column in the contents
+        name_mapping (Dict[str, str]): The mapping of user variable to column in the contents
         contents (Dict[str, Any]): The contents of the array we are building into
     """
     items = {
@@ -50,7 +50,7 @@ class auto_schema(BaseSchema):
 
         # Get the collection names - anything with a common name before the "_".
         contents = self._form["contents"]
-        collections = set(k.split("_")[0] for k in contents)
+        collections = set(k.split("_")[0] for k in contents if '_' in k)
 
         output = {}
         for c_name in collections:
@@ -85,6 +85,11 @@ class auto_schema(BaseSchema):
             )
             record["parameters"].update({"collection_name": c_name})
             output[c_name] = record
+
+        # Single items in the collection
+        single_items = [k for k in contents if '_' not in k]
+        for item_name in single_items:
+            output[item_name] = contents[item_name]
 
         self._form["contents"] = output
 
