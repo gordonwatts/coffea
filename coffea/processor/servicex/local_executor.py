@@ -34,7 +34,7 @@ class LocalExecutor(Executor):
         pass
 
     def get_result_file_stream(self, datasource):
-        return datasource.stream_result_files()
+        return datasource.stream_result_files(self.datatype)
 
     def run_async_analysis(self, file_url, tree_name, process_func, datatype, metadata):
         return self._async_analysis(

@@ -59,12 +59,12 @@ class DataSource:
                 async for file in dataset.get_data_parquet_url_stream(query_qastle):
                     yield file
             elif datatype == 'root':
-                async for file in dataset.get_data_url_url_stream(query_qastle):
+                async for file in dataset.get_data_rootfiles_url_stream(query_qastle):
                     yield file
-        else:
-            raise Exception('Unknown datatype')
+            else:
+                raise Exception('Unknown datatype')
 
-    async def stream_result_files(self) -> AsyncGenerator[StreamInfoUrl, None]:
+    async def stream_result_files(self, datatype) -> AsyncGenerator[StreamInfoUrl, None]:
         """Launch all datasources at once
 
         TODO: This is currently sync (that outter for loop does one datasource and then the next).
@@ -80,5 +80,11 @@ class DataSource:
         # Get the files back from each dataset.
         # TODO: Parallelize this outter loop using streams (or similar).
         for dataset in self.datasets:
-            async for file in dataset.get_data_parquet_stream(query_qastle):
-                yield file
+            if datatype == 'parquet':
+                async for file in dataset.get_data_parquet_stream(query_qastle):
+                    yield file
+            elif datatype == 'root':
+                async for file in dataset.get_data_rootfiles_stream(query_qastle):
+                    yield file
+            else:
+                raise Exception('Unknown datatype')

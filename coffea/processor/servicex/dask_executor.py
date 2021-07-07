@@ -31,32 +31,37 @@ from .executor import run_coffea_processor, Executor
 
 
 class DaskExecutor(Executor):
-    def __init__(self, client_addr: Optional[str] = None):
+    def __init__(self, client_addr: Optional[str] = None, datatype='root'):
         """Create a Dask executor to process the analysis
 
         Args:
             client_addr (Optional[str]): If `None` then create a local cluster that runs in-process.
                                          Otherwise connect to an already existing cluster.
         """
+        super().__init__(datatype)
+
         self.is_local = client_addr is None
         self.dask = (
-            Client(threads_per_worker=10, asynchronous=True)
+            Client(n_workers=30, threads_per_worker=1, asynchronous=True)
             if self.is_local
             else Client(client_addr, asynchronous=True)
         )
 
     def get_result_file_stream(self, datasource):
         if self.is_local:
-            return datasource.stream_result_files()
+            return datasource.stream_result_files(self.datatype)
         else:
-            return datasource.stream_result_file_urls()
+            return datasource.stream_result_file_urls(self.datatype)
 
-    def run_async_analysis(self, file_url, tree_name, process_func):
+    def run_async_analysis(self, file_url, tree_name, process_func, datatype, metadata):
+        print(file_url)
         data_result = self.dask.submit(
             run_coffea_processor,
             events_url=file_url,
             tree_name=tree_name,
             proc=process_func,
+            datatype=datatype,
+            metadata_list=metadata
         )
 
         return data_result
