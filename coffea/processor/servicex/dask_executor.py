@@ -54,7 +54,6 @@ class DaskExecutor(Executor):
             return datasource.stream_result_file_urls(self.datatype)
 
     def run_async_analysis(self, file_url, tree_name, process_func, datatype, metadata):
-        print(file_url)
         data_result = self.dask.submit(
             run_coffea_processor,
             events_url=file_url,
