@@ -165,7 +165,7 @@ def run_coffea_processor(
             file=str(events_url),
             treepath=f"/{tree_name}",
             schemaclass=auto_schema,
-            metadata= {"filename": str(events_url)},
+            metadata= dict({"filename": str(events_url)}, **metadata_list),
         ).events()
     elif datatype == 'parquet':
         events = NanoEventsFactory.from_parquet(
